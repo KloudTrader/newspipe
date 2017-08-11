@@ -10,10 +10,10 @@ div.top {
 
 #newspipenav {
     background-color: #205081;
-    border: #205081;
-    border-radius: 0;
+    /*border: #205081;
+    border-radius: 0;*/
 }
-#newspipenav>div.container {
+/*#newspipenav>div.container {
   width: 100%;
 }
 #newspipenav span.glyphicon {
@@ -21,7 +21,7 @@ div.top {
 }
 #newspipenav button {
   margin-left: 5px;
-}
+}*/
 
 #newspipenav a.navbar-brand,
 #newspipenav .newspipenavitem a,

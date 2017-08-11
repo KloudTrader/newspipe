@@ -9,12 +9,14 @@
     <title>Newspipe{% if head_titles %} - {{ ' - '.join(head_titles) }}{% endif %}</title>
     <link rel="shortcut icon" href="{{ url_for("static", filename="img/favicon.ico") }}" />
     <!-- Bootstrap core CSS -->
-    <link href="{{ url_for("static", filename="css/bootstrap.min.css") }}" rel="stylesheet" media="screen" />
+    <link href="{{ url_for("static", filename="bower_components/bootstrap/dist/css/bootstrap.min.css") }}" rel="stylesheet" media="screen" />
     <!-- Add custom CSS here -->
     <link href="{{ url_for("static", filename="css/customized-bootstrap.css") }}" rel="stylesheet" media="screen" />
+    <link href="{{ url_for("static", filename="css/side-nav.css") }}" rel="stylesheet" media="screen" />
     <!-- jquery, bootstrap, datatables -->
     <script type="text/javascript" src="{{ url_for('static', filename = 'js/jquery.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename = 'js/bootstrap.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for("static", filename="js/popper.min.js") }}"></script>
+    <script type="text/javascript" src="{{ url_for("static", filename="bower_components/bootstrap/dist/js/bootstrap.min.js") }}"></script>
     <link rel="stylesheet" type="text/css" href="{{ url_for("static", filename="bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css") }}">
     <script type="text/javascript" src="{{ url_for("static", filename="bower_components/datatables.net/js/jquery.dataTables.min.js") }}"></script>
     <script type="text/javascript" src="{{ url_for("static", filename="bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js") }}"></script>
@@ -22,44 +24,41 @@
   </head>
   <body>
     {% block menu %}
-    <nav id="newspipenav" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-      <div class="container-fluid">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="{{ url_for("home") }}">🗞&nbsp;Newspipe</a>
-          {% if head_titles %}
-            <p class="navbar-text" style="max-height: 20px; overflow: hidden">
-            {{ " - ".join(head_titles) }}
-            </p>
-          {% endif %}
-        </div>
-        <!-- Collect the nav links, forms, and other content for toggling -->
-        <div id="navbar" class="navbar-collapse collapse">
-          <ul class="nav navbar-nav navbar-right">
+    <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="{{ url_for("home") }}">Newspipe</a>
+        <!-- {% if head_titles %}
+          <p class="navbar-text" style="max-height: 20px; overflow: hidden">
+          {{ " - ".join(head_titles) }}
+          </p>
+        {% endif %} -->
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mr-auto">
             {% if current_user.is_authenticated %}
                 {% if conf.CRAWLING_METHOD == "default" and (not conf.ON_HEROKU or current_user.is_admin) %}
-                    <li><a href="/fetch"><span class="glyphicon glyphicon-import"></span> {{ _('Fetch') }}</a></li>
+                    <li class="nav-item active">
+                        <a class="nav-link" href="/fetch"><span class="glyphicon glyphicon-import"></span> {{ _('Fetch') }}</a>
+                    </li>
                 {% endif %}
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <div><span class="glyphicon glyphicon-bookmark"></span></div>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Boookmarks
                     </a>
-                    <ul class="dropdown-menu">
-                        <li><a href="{{ url_for('bookmarks.list_') }}">{{ _('Your bookmarks') }}</a></li>
-                        <li><a href="{{ url_for('bookmark.form') }}">{{ _('Add a new bookmark') }}</a></li>
-                    </ul>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                        <a class="dropdown-item" href="{{ url_for('bookmarks.list_') }}">{{ _('Your bookmarks') }}</a>
+                        <a class="dropdown-item" href="{{ url_for('bookmark.form') }}">{{ _('Add a new bookmark') }}</a>
+                    </div>
                 </li>
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <div><span class="glyphicon glyphicon-plus-sign"></span>&nbsp;{{ _('Add a new feed') }}</div>
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        {{ _('Add a new feed') }}
                     </a>
-                    <ul class="dropdown-menu">
-                        <li>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink2">
+                        <a class="dropdown-item">
                             <form action="{{ url_for('feed.bookmarklet') }}" class="navbar-form  navbar-left" method="GET" name="save">
                               <div class="input-group input-group-inline">
                                   <input class="form-control" name="url" type="url" placeholder="{{_("Site or feed url")}}" required="required"/>
@@ -68,15 +67,16 @@
                                   </span>
                               </div><!-- /input-group -->
                             </form>
-                        </li>
-                    </ul>
+                        </a>
+                    </div>
                 </li>
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <div><span class="glyphicon glyphicon-plus-sign"></span>&nbsp;{{ _('Add a new category') }}</div>
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink3" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        {{ _('Add a new category') }}
                     </a>
-                    <ul class="dropdown-menu">
-                        <li>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink3">
+                        <a class="dropdown-item">
                             <form action="{{ url_for('category.form') }}" class="navbar-form  navbar-left" method="POST" name="category">
                               <div class="input-group input-group-inline">
                                   <input class="form-control" name="name" type="text" placeholder="{{_("Category name")}}" required="required"/>
@@ -85,44 +85,49 @@
                                   </span>
                               </div><!-- /input-group -->
                             </form>
-                        </li>
-                    </ul>
+                        </a>
+                    </div>
                 </li>
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ _('Feed') }} <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="{{ url_for("feeds.inactives") }}">{{ _('Inactive') }}</a></li>
-                        <li><a href="{{ url_for("articles.history") }}">{{ _('History') }}</a></li>
-                        <li><a href="{{ url_for("feeds.feeds") }}">{{ _('All') }}</a></li>
-                        <li role="presentation" class="divider"></li>
-                        <li><a href="{{ url_for("popular") }}">{{ _('Popular') }}</a></li>
-                    </ul>
-                </li>
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <div><span class="glyphicon glyphicon-user"></span>&nbsp;<b class="caret"></b></div>
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink4" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        {{ _('Feed') }}
                     </a>
-                    <ul class="dropdown-menu">
-                        <li><a href="{{ url_for("user.profile") }}"><span class="glyphicon glyphicon-user"></span> {{ _('Profile') }}</a></li>
-                        <li><a href="{{ url_for("user.management") }}"><span class="glyphicon glyphicon-hdd"></span> {{ _('Your data') }}</a></li>
-                        <li><a href="{{ url_for("about") }}"><span class="glyphicon glyphicon-question-sign"></span> {{ _('About') }}</a></li>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink4">
+                        <a class="dropdown-item" href="{{ url_for("feeds.inactives") }}">{{ _('Inactive') }}</a>
+                        <a class="dropdown-item" href="{{ url_for("articles.history") }}">{{ _('History') }}</a>
+                        <a class="dropdown-item" href="{{ url_for("feeds.feeds") }}">{{ _('All') }}</a>
+                        <a role="presentation" class="divider"></a>
+                        <a class="dropdown-item" href="{{ url_for("popular") }}">{{ _('Popular') }}</a>
+                    </div>
+                </li>
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink5" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        User
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink5">
+                        <a class="dropdown-item" href="{{ url_for("user.profile") }}"><span class="glyphicon glyphicon-user"></span> {{ _('Profile') }}</a>
+                        <a class="dropdown-item" href="{{ url_for("user.management") }}"><span class="glyphicon glyphicon-hdd"></span> {{ _('Your data') }}</a>
+                        <a class="dropdown-item" href="{{ url_for("about") }}"><span class="glyphicon glyphicon-question-sign"></span> {{ _('About') }}</a>
                         {% if current_user.is_admin %}
-                        <li role="presentation" class="divider"></li>
-                        <li><a href="{{ url_for("admin.dashboard") }}"><span class="glyphicon glyphicon-dashboard"></span> {{ _('Dashboard') }}</a></li>
-                        <li role="presentation" class="divider"></li>
+                        <a role="presentation" class="divider"></a>
+                        <a class="dropdown-item" href="{{ url_for("admin.dashboard") }}"><span class="glyphicon glyphicon-dashboard"></span> {{ _('Dashboard') }}</a>
+                        <a role="presentation" class="divider"></a>
                         {% endif %}
-                        <li><a href="{{ url_for("logout") }}"><span class="glyphicon glyphicon-log-out"></span> {{ _('Logout') }}</a></li>
-                    </ul>
+                        <a class="dropdown-item" href="{{ url_for("logout") }}"><span class="glyphicon glyphicon-log-out"></span> {{ _('Logout') }}</a>
+                    </div>
                 </li>
             {% else %}
-                <li><a href="{{ url_for("bookmarks.list_") }}"><span class="glyphicon glyphicon-bookmark"></span>&nbsp;{{ _('Recent bookmarks') }}</a></li>
-                <li><a href="{{ url_for("popular") }}"><span class="glyphicon glyphicon-list"></span>&nbsp;{{ _('Popular feeds') }}</a></li>
-                <li><a href="{{ url_for("about") }}"><span class="glyphicon glyphicon-question-sign"></span>&nbsp;{{ _('About') }}</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for("bookmarks.list_") }}">{{ _('Recent bookmarks') }}</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for("popular") }}">{{ _('Popular feeds') }}</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for("about") }}">{{ _('About') }}</a></li>
             {% endif %}
-          </ul>
-        </div><!-- /.navbar-collapse -->
-      </div><!-- /.container-fluid -->
+            </ul>
+        </div>
     </nav>
+
+
     {% endblock %}
     <br />
 

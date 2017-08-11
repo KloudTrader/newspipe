@@ -1,8 +1,9 @@
 import pytz
 import logging
 from datetime import datetime
+from collections import OrderedDict
 
-from flask import current_app, render_template, \
+from flask import current_app, render_template, make_response, \
         request, flash, url_for, redirect
 from flask_login import login_required, current_user
 from flask_babel import gettext, get_locale
@@ -11,6 +12,7 @@ from babel.dates import format_datetime, format_timedelta
 import conf
 from lib.utils import redirect_url
 from lib import misc_utils
+from web.models import User, Feed, Article, Role
 from web.lib.view_utils import etag_match
 from web.views.common import jsonify
 
@@ -21,53 +23,83 @@ localize = pytz.utc.localize
 logger = logging.getLogger(__name__)
 
 
+
 @current_app.route('/')
 @login_required
-@etag_match
 def home():
-    return render_template('home.html', cdn=conf.CDN_ADDRESS)
+    "Home page for connected users. Displays by default unread articles."
+    return render_home()
 
+def render_home(filters=None, head_titles=None,
+                page_to_render='home', **kwargs):
+    if filters is None:
+        filters = {}
+    if head_titles is None:
+        head_titles = []
+    feed_contr = FeedController(current_user.id)
+    arti_contr = ArticleController(current_user.id)
+    feeds = {feed.id: feed.title for feed in feed_contr.read()}
 
-@current_app.route('/menu')
-@login_required
-@etag_match
-@jsonify
-def get_menu():
-    now, locale = datetime.now(), get_locale()
-    categories_order = [0]
-    categories = {0: {'name': 'No category', 'id': 0}}
-    for cat in CategoryController(current_user.id).read().order_by('name'):
-        categories_order.append(cat.id)
-        categories[cat.id] = cat
-    unread = ArticleController(current_user.id).count_by_feed(readed=False)
-    for cat_id in categories:
-        categories[cat_id]['unread'] = 0
-        categories[cat_id]['feeds'] = []
-    feeds = {feed.id: feed for feed in FeedController(current_user.id).read()}
-    for feed_id, feed in feeds.items():
-        feed['created_rel'] = format_timedelta(feed.created_date - now,
-                add_direction=True, locale=locale)
-        feed['last_rel'] = format_timedelta(feed.last_retrieved - now,
-                add_direction=True, locale=locale)
-        feed['created_date'] = format_datetime(localize(feed.created_date),
-                                                locale=locale)
-        feed['last_retrieved'] = format_datetime(localize(feed.last_retrieved),
-                                                locale=locale)
-        feed['category_id'] = feed.category_id or 0
-        feed['unread'] = unread.get(feed.id, 0)
-        if not feed.filters:
-            feed['filters'] = []
-        if feed.icon_url:
-            feed['icon_url'] = url_for('icon.icon', url=feed.icon_url)
-        categories[feed['category_id']]['unread'] += feed['unread']
-        categories[feed['category_id']]['feeds'].append(feed_id)
-    return {'feeds': feeds, 'categories': categories,
-            'categories_order': categories_order,
-            'crawling_method': conf.CRAWLING_METHOD,
-            'max_error': conf.DEFAULT_MAX_ERROR,
-            'error_threshold': conf.ERROR_THRESHOLD,
-            'is_admin': current_user.is_admin,
-            'all_unread_count': sum(unread.values())}
+    in_error = {feed.id: feed.error_count for feed in
+                feed_contr.read(error_count__gt=2)}
+
+    filter_ = request.args.get('filter_',
+                               'unread' if page_to_render == 'home' else 'all')
+    sort_ = request.args.get('sort_', 'date')
+    feed_id = int(request.args.get('feed_id', 0))
+    limit = request.args.get('limit', 1000)
+
+    if filter_ != 'all':
+        filters['readed'] = filter_ == 'read'
+    if feed_id:
+        filters['feed_id'] = feed_id
+        head_titles.append(feed_contr.get(id=feed_id).title)
+
+    sort_param = {"feed": Feed.title.desc(),
+                  "date": Article.date.desc(),
+                  "article": Article.title.desc(),
+                  "-feed": Feed.title.asc(),
+                  "-date": Article.date.asc(),
+                  "-article": Article.title.asc()
+                  }.get(sort_, Article.date.desc())
+
+    articles = arti_contr.read(**filters).join(Article.source). \
+                                            order_by(sort_param)
+    if limit != 'all':
+        limit = int(limit)
+        articles = articles.limit(limit)
+
+    def gen_url(filter_=filter_, sort_=sort_, limit=limit, feed_id=feed_id,
+                **kwargs):
+        o_kwargs = OrderedDict()
+        for key in sorted(kwargs):
+            o_kwargs[key] = kwargs[key]
+        if page_to_render == 'search':
+            o_kwargs['query'] = request.args.get('query', '')
+            o_kwargs['search_title'] = request.args.get('search_title', 'off')
+            o_kwargs['search_content'] = request.args.get(
+                    'search_content', 'off')
+            # if nor title and content are selected, selecting title
+            if o_kwargs['search_title'] == o_kwargs['search_content'] == 'off':
+                o_kwargs['search_title'] = 'on'
+        o_kwargs['filter_'] = filter_
+        o_kwargs['sort_'] = sort_
+        o_kwargs['limit'] = limit
+        o_kwargs['feed_id'] = feed_id
+        return url_for(page_to_render, **o_kwargs)
+
+    articles = list(articles)
+    if (page_to_render == 'home' and feed_id or page_to_render == 'search') \
+            and filter_ != 'all' and not articles:
+        return redirect(gen_url(filter_='all'))
+
+    response = make_response(render_template('home.html', gen_url=gen_url,
+                             feed_id=feed_id, page_to_render=page_to_render,
+                             filter_=filter_, limit=limit, feeds=feeds,
+                             unread=arti_contr.count_by_feed(readed=False),
+                             articles=articles, in_error=in_error,
+                             head_titles=head_titles, sort_=sort_, **kwargs))
+    return response
 
 
 def _get_filters(in_dict):
@@ -112,16 +144,6 @@ def _articles_to_json(articles, fd_hash=None):
                     threshold=1.1, add_direction=True,
                     locale=locale)}
             for art in articles.limit(1000)]}
-
-
-@current_app.route('/middle_panel')
-@login_required
-@etag_match
-def get_middle_panel():
-    filters = _get_filters(request.args)
-    art_contr = ArticleController(current_user.id)
-    articles = art_contr.read_light(**filters)
-    return _articles_to_json(articles)
 
 
 @current_app.route('/getart/<int:article_id>')
