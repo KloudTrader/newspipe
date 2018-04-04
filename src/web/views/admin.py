@@ -61,7 +61,6 @@ def process_user_form(user_id=None):
         # Edit a user
         user_contr.update({'id': user_id},
                           {'nickname': form.nickname.data,
-                           'email': form.email.data,
                            'password': form.password.data,
                            'automatic_crawling': form.automatic_crawling.data})
         user = user_contr.get(id=user_id)
@@ -70,7 +69,6 @@ def process_user_form(user_id=None):
     else:
         # Create a new user (by the admin)
         user = user_contr.create(nickname=form.nickname.data,
-                            email=form.email.data,
                             pwdhash=generate_password_hash(form.password.data),
                             automatic_crawling=form.automatic_crawling.data,
                             is_admin=False,
@@ -93,7 +91,7 @@ def delete_user(user_id=None):
                       nick=user.nickname), 'success')
     except Exception as error:
         flash(
-            gettext('An error occured while trying to delete a user: %(error)s',
+            gettext('An error occurred while trying to delete a user: %(error)s',
                         error=error), 'danger')
     return redirect(url_for('admin.dashboard'))
 

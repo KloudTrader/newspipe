@@ -100,7 +100,7 @@ async def parse_feed(user, feed):
     up_feed['error_count'] = 0
     up_feed['last_error'] = ""
 
-    # Feed informations
+    # Feed information
     construct_feed_from(feed.link, parsed_feed).update(up_feed)
     if feed.title and 'title' in up_feed:
         # do not override the title set by the user
@@ -130,6 +130,7 @@ async def insert_database(user, feed):
             continue
         exist = existing_article_req.count() != 0
         if exist:
+            continue
             # if the article has been already retrieved, we only update
             # the content or the title
             logger.info('Article already in the database: {}'. \
